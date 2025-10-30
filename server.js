@@ -3,27 +3,29 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import 'dotenv/config'; 
+import 'dotenv/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3001; 
+const port = process.env.PORT || 3001;
 
-app.use(express.json()); 
+app.use(express.json());
 
 const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
 app.post('/api/generate', async (req, res) => {
   if (!process.env.GEMINI_API_KEY) {
+    console.warn("ZATRZYMANO: Zmienna GEMINI_API_KEY nie jest ustawiona na serwerze.");
     return res.status(500).json({ error: 'Klucz API Gemini nie jest skonfigurowany na serwerze.' });
   }
 
   try {
-    const { keywords, style } = req.body; 
+    const { keywords, style } = req.body;
 
     if (!keywords || !style) {
+      console.warn("ZATRZYMANO: Zapytanie nie zawiera 'keywords' lub 'style'.");
       return res.status(400).json({ error: 'Brakujące "keywords" lub "style" w zapytaniu.' });
     }
 
@@ -46,20 +48,24 @@ app.post('/api/generate', async (req, res) => {
     res.json({ text });
 
   } catch (error) {
-    // --- OTO ZMIANA ---
-    console.error("PEŁNY BŁĄD Z GEMINI:", error); // Loguje pełny błąd w logach Render
+    // --- Ulepszone logowanie błędów ---
+    console.error("!!! KRYTYCZNY BŁĄD PODCZAS KOMUNIKACJI Z GEMINI API !!!");
+    console.error("Szczegóły błędu zwrócone przez Google:");
+    console.error(error); // Loguje pełny obiekt błędu w logach Render
+    // --- Koniec ulepszonego logowania ---
 
     // Spróbuj wyodrębnić bardziej szczegółowy komunikat błędu
-    let detailedError = 'Wystąpił nieznany błąd serwera.';
+    let detailedError = 'Wystąpił nieznany błąd podczas komunikacji z API.';
     
     if (error instanceof Error) {
-        // 'error.message' często zawiera szczegóły od API Google
+        // error.message często zawiera konkretny powód odrzucenia przez Google
         detailedError = error.message;
+    } else if (typeof error === 'string') {
+        detailedError = error;
     }
     
     // Przekaż PRAWDZIWY komunikat błędu do Twojej aplikacji React
-    res.status(500).json({ error: detailedError }); 
-    // --- KONIEC ZMIANY ---
+    res.status(500).json({ error: `Błąd API: ${detailedError}` });
   }
 });
 
@@ -73,7 +79,6 @@ app.get('*', (req, res) => {
 
 
 app.listen(port, () => {
-  console.log(`Serwer uruchomiony na porcie ${port}`);
+  console.log(`Serwer uruchomiony poprawnie na porcie ${port}`);
 });
-```eof
 
