@@ -1,6 +1,5 @@
-
 import React, { useState, useCallback } from 'react';
-import { generatePost } from './services/geminiService';
+// import { generatePost } from './services/geminiService'; // <-- KROK 1: Usunięty import
 import { authorStyles } from './constants';
 
 // --- Helper Components defined outside the main component to avoid re-creation on re-renders ---
@@ -22,7 +21,7 @@ const Header: React.FC = () => (
     </header>
 );
 
-// --- InputForm Component ---
+// --- InputForm Component (Bez zmian) ---
 interface InputFormProps {
     keywords: string;
     setKeywords: (keywords: string) => void;
@@ -86,7 +85,7 @@ const InputForm: React.FC<InputFormProps> = ({ keywords, setKeywords, style, set
 );
 
 
-// --- PostDisplay Component ---
+// --- PostDisplay Component (Bez zmian) ---
 interface FormattedPostProps {
   text: string;
 }
@@ -161,6 +160,7 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
+    // --- KROK 2: ZMODYFIKOWANA FUNKCJA handleSubmit ---
     const handleSubmit = useCallback(async () => {
         if (!keywords.trim()) {
             setError("Proszę wpisać słowa kluczowe.");
@@ -172,14 +172,35 @@ const App: React.FC = () => {
         setPost('');
 
         try {
-            const generatedPost = await generatePost(keywords, style);
-            setPost(generatedPost);
+            // 1. Stwórz prompt, który wyślesz do swojego serwera (server.js)
+            // Możesz go ulepszyć, aby dawać lepsze instrukcje modelowi
+            const prompt = `Stwórz profesjonalny post na social media w stylu "${style}" na temat: "${keywords}". Post powinien być gotowy do publikacji, zawierać odpowiednie emoji i 3-5 trafnych hasztagów.`;
+
+            // 2. Wywołaj swój własny backend (server.js) zamiast geminiService
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: prompt }), // Serwer oczekuje obiektu { prompt: "..." }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Jeśli serwer zwrócił błąd (np. brak API key), pokaż go
+                throw new Error(data.error || 'Wystąpił nieoczekiwany błąd serwera.');
+            }
+
+            // 3. Ustaw post odpowiedzią z serwera
+            setPost(data.text);
+
         } catch (err: any) {
             setError(err.message || 'Wystąpił nieoczekiwany błąd.');
         } finally {
             setIsLoading(false);
         }
-    }, [keywords, style]);
+    }, [keywords, style]); // Zależności pozostają bez zmian
 
     return (
         <div className="min-h-screen bg-gray-900 text-white font-sans p-4 sm:p-6 lg:p-8">
@@ -205,7 +226,7 @@ const App: React.FC = () => {
                     />
                 </main>
                 <footer className="text-center text-gray-500 mt-12 text-sm">
-                    <p>Stworzone z pomocą Gemini AI</p>
+                    
                 </footer>
             </div>
         </div>
