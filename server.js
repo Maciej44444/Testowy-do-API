@@ -77,15 +77,3 @@ app.listen(port, () => {
 });
 ```eof
 
-### Co teraz się stanie?
-
-Po wdrożeniu tej zmiany na Render:
-
-1.  Wejdź na swoją aplikację i spróbuj ponownie wygenerować post.
-2.  Tym razem, zamiast ogólnego komunikatu "Błąd podczas komunikacji z Gemini API", **powinieneś zobaczyć w czerwonym polu na stronie dokładny powód błędu** zwrócony przez Google.
-
-Będzie to prawdopodobnie coś w stylu:
-
-* `[400 Bad Request] API key not valid. Please pass a valid API key.` (Klucz jest jednak nieprawidłowy lub ma literówkę).
-* `[403 Forbidden] Generative Language API has not been used in project... before or it is disabled. Enable it by visiting...` (API nie jest włączone w Twoim projekcie Google Cloud).
-* `[400 Bad Request] Billing account not configured for project...` (Brak podpiętego konta rozliczeniowego do
