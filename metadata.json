@@ -1,0 +1,5 @@
+{
+  "name": "Generator Postów Social Media",
+  "description": "Aplikacja, która generuje posty na media społecznościowe na podstawie podanych słów kluczowych i w wybranym stylu znanego twórcy.",
+  "requestFramePermissions": []
+}
