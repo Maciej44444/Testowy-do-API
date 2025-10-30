@@ -3,21 +3,18 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenerativeAI } from '@google/genai';
-import 'dotenv/config'; // Załaduj zmienne środowiskowe
+import 'dotenv/config'; 
 
-// Konfiguracja dla modułów ES (aby działało __dirname)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3001; // Render ustawi PORT automatycznie
+const port = process.env.PORT || 3001; 
 
 // --- 1. Bezpieczne API Proxy dla Gemini ---
 
-app.use(express.json()); // Pozwól serwerowi czytać JSON z body zapytania
+app.use(express.json()); 
 
-// Pobierz klucz API ze zmiennych środowiskowych
-// UWAGA: Na Renderze musisz ustawić zmienną środowiskową o nazwie GEMINI_API_KEY
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post('/api/generate', async (req, res) => {
@@ -26,10 +23,29 @@ app.post('/api/generate', async (req, res) => {
   }
 
   try {
-    const { prompt } = req.body; // Odbierz prompt od klienta
+    // --- OTO POPRAWKA ---
+    // 1. Odbierz 'keywords' i 'style' od klienta (z App.jsx)
+    const { keywords, style } = req.body; 
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' }); // Możesz zmienić model
-    const result = await model.generateContent(prompt);
+    if (!keywords || !style) {
+      return res.status(400).json({ error: 'Brakujące "keywords" lub "style" w zapytaniu.' });
+    }
+
+    // 2. Wklej tutaj swoje cenne instrukcje (prompt)
+    const fullPrompt = `Jesteś światowej klasy ekspertem od social media i copywritingu. Twoim zadaniem jest stworzenie angażującego posta na media społecznościowe (np. Instagram, Facebook, LinkedIn).
+    
+    Instrukcje:
+    1. Użyj podanych słów kluczowych jako głównej inspiracji: "${keywords}".
+    2. Napisz post w niepowtarzalnym stylu: ${style}.
+    3. Post powinien być zwięzły, ale chwytliwy.
+    4. Użyj formatowania Markdown, aby wyróżnić kluczowe frazy. Stosuj **pogrubienie** dla najważniejszych części. Możesz też dodać 2-3 relevantne hashtagi na końcu.
+    5. Nie dodawaj żadnych wstępów typu "Oto propozycja posta:" ani podpisów. Zwróć tylko i wyłącznie treść posta.
+    
+    Postaraj się, aby efekt był kreatywny i autentyczny dla wybranego stylu.`;
+
+    // 3. Użyj poprawnego modelu i wyślij pełny prompt
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent(fullPrompt);
     const response = await result.response;
     const text = response.text();
     
@@ -43,11 +59,8 @@ app.post('/api/generate', async (req, res) => {
 
 // --- 2. Serwowanie plików statycznych Reacta ---
 
-// Ustaw ścieżkę do zbudowanych plików Reacta (folder 'dist')
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Dla wszystkich innych zapytań odeślij główny plik index.html
-// To pozwala React Routerowi (jeśli go używasz) przejąć kontrolę
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
