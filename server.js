@@ -2,8 +2,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-// --- POPRAWKA LITERÓWKI TUTAJ ---
-import { GoogleGenAI } from '@google/genai'; // Było: GoogleGenerativeAI
+import { GoogleGenAI } from '@google/genai';
 import 'dotenv/config'; 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,13 +11,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001; 
 
-// --- 1. Bezpieczne API Proxy dla Gemini ---
-
 app.use(express.json()); 
 
-// --- POPRAWKA LITERÓWKI TUTAJ ---
-// Pobierz klucz API ze zmiennych środowiskowych
-const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY); // Było: GoogleGenerativeAI
+const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
 app.post('/api/generate', async (req, res) => {
   if (!process.env.GEMINI_API_KEY) {
@@ -43,21 +38,32 @@ app.post('/api/generate', async (req, res) => {
     
     Postaraj się, aby efekt był kreatywny i autentyczny dla wybranego stylu.`;
 
-    // Ta część była już poprawna
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(fullPrompt);
     const response = await result.response;
     const text = response.text();
     
-    res.json({ text }); // Odeślij odpowiedź do klienta
+    res.json({ text });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Błąd podczas komunikacji z Gemini API' });
+    // --- OTO ZMIANA ---
+    console.error("PEŁNY BŁĄD Z GEMINI:", error); // Loguje pełny błąd w logach Render
+
+    // Spróbuj wyodrębnić bardziej szczegółowy komunikat błędu
+    let detailedError = 'Wystąpił nieznany błąd serwera.';
+    
+    if (error instanceof Error) {
+        // 'error.message' często zawiera szczegóły od API Google
+        detailedError = error.message;
+    }
+    
+    // Przekaż PRAWDZIWY komunikat błędu do Twojej aplikacji React
+    res.status(500).json({ error: detailedError }); 
+    // --- KONIEC ZMIANY ---
   }
 });
 
-// --- 2. Serwowanie plików statycznych Reacta ---
+// --- Serwowanie plików statycznych Reacta ---
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -69,4 +75,17 @@ app.get('*', (req, res) => {
 app.listen(port, () => {
   console.log(`Serwer uruchomiony na porcie ${port}`);
 });
+```eof
 
+### Co teraz się stanie?
+
+Po wdrożeniu tej zmiany na Render:
+
+1.  Wejdź na swoją aplikację i spróbuj ponownie wygenerować post.
+2.  Tym razem, zamiast ogólnego komunikatu "Błąd podczas komunikacji z Gemini API", **powinieneś zobaczyć w czerwonym polu na stronie dokładny powód błędu** zwrócony przez Google.
+
+Będzie to prawdopodobnie coś w stylu:
+
+* `[400 Bad Request] API key not valid. Please pass a valid API key.` (Klucz jest jednak nieprawidłowy lub ma literówkę).
+* `[403 Forbidden] Generative Language API has not been used in project... before or it is disabled. Enable it by visiting...` (API nie jest włączone w Twoim projekcie Google Cloud).
+* `[400 Bad Request] Billing account not configured for project...` (Brak podpiętego konta rozliczeniowego do
