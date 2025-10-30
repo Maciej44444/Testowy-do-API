@@ -2,7 +2,8 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenerativeAI } from '@google/genai';
+// --- POPRAWKA LITERÓWKI TUTAJ ---
+import { GoogleGenAI } from '@google/genai'; // Było: GoogleGenerativeAI
 import 'dotenv/config'; 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,7 +16,9 @@ const port = process.env.PORT || 3001;
 
 app.use(express.json()); 
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// --- POPRAWKA LITERÓWKI TUTAJ ---
+// Pobierz klucz API ze zmiennych środowiskowych
+const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY); // Było: GoogleGenerativeAI
 
 app.post('/api/generate', async (req, res) => {
   if (!process.env.GEMINI_API_KEY) {
@@ -23,15 +26,12 @@ app.post('/api/generate', async (req, res) => {
   }
 
   try {
-    // --- OTO POPRAWKA ---
-    // 1. Odbierz 'keywords' i 'style' od klienta (z App.jsx)
     const { keywords, style } = req.body; 
 
     if (!keywords || !style) {
       return res.status(400).json({ error: 'Brakujące "keywords" lub "style" w zapytaniu.' });
     }
 
-    // 2. Wklej tutaj swoje cenne instrukcje (prompt)
     const fullPrompt = `Jesteś światowej klasy ekspertem od social media i copywritingu. Twoim zadaniem jest stworzenie angażującego posta na media społecznościowe (np. Instagram, Facebook, LinkedIn).
     
     Instrukcje:
@@ -43,7 +43,7 @@ app.post('/api/generate', async (req, res) => {
     
     Postaraj się, aby efekt był kreatywny i autentyczny dla wybranego stylu.`;
 
-    // 3. Użyj poprawnego modelu i wyślij pełny prompt
+    // Ta część była już poprawna
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(fullPrompt);
     const response = await result.response;
@@ -69,3 +69,4 @@ app.get('*', (req, res) => {
 app.listen(port, () => {
   console.log(`Serwer uruchomiony na porcie ${port}`);
 });
+
