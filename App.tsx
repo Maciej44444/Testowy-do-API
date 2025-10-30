@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-// import { generatePost } from './services/geminiService'; // <-- KROK 1: Usunięty import
-import { authorStyles } from './constants';
+// import { generatePost } from './services/geminiService'; // <-- Ten import jest usunięty
+import { authorStyles } from './constants'; // <-- Upewnij się, że masz plik src/constants.ts
 
-// --- Helper Components defined outside the main component to avoid re-creation on re-renders ---
+// --- Helper Components (bez zmian) ---
 
 const SparklesIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -92,7 +92,6 @@ interface FormattedPostProps {
 
 const FormattedPost: React.FC<FormattedPostProps> = ({ text }) => {
   const formatText = (inputText: string) => {
-    // Basic HTML escaping
     const escapeHtml = (unsafe: string) => {
         return unsafe
              .replace(/&/g, "&amp;")
@@ -102,9 +101,7 @@ const FormattedPost: React.FC<FormattedPostProps> = ({ text }) => {
              .replace(/'/g, "&#039;");
     }
     let formatted = escapeHtml(inputText);
-    // Replace markdown **bold** with <strong> tags
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Replace newlines with <br> tags
     formatted = formatted.replace(/\n/g, '<br />');
     return formatted;
   };
@@ -160,7 +157,7 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    // --- KROK 2: ZMODYFIKOWANA FUNKCJA handleSubmit ---
+    // --- ZMODYFIKOWANA FUNKCJA handleSubmit ---
     const handleSubmit = useCallback(async () => {
         if (!keywords.trim()) {
             setError("Proszę wpisać słowa kluczowe.");
@@ -172,17 +169,14 @@ const App: React.FC = () => {
         setPost('');
 
         try {
-            // 1. Stwórz prompt, który wyślesz do swojego serwera (server.js)
-            // Możesz go ulepszyć, aby dawać lepsze instrukcje modelowi
-            const prompt = `Stwórz profesjonalny post na social media w stylu "${style}" na temat: "${keywords}". Post powinien być gotowy do publikacji, zawierać odpowiednie emoji i 3-5 trafnych hasztagów.`;
-
-            // 2. Wywołaj swój własny backend (server.js) zamiast geminiService
+            // 1. Wywołaj swój własny backend (server.js)
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ prompt: prompt }), // Serwer oczekuje obiektu { prompt: "..." }
+                // 2. Wyślij 'keywords' i 'style' do serwera
+                body: JSON.stringify({ keywords: keywords, style: style }), 
             });
 
             const data = await response.json();
@@ -234,3 +228,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
