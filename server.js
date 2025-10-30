@@ -1,22 +1,43 @@
-// server.js (fragmenty zmienione)
+// server.js
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import 'dotenv/config';
 
+// Basic startup logs so Render/you see the process started
+console.log('=== STARTING server.js ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT env var:', process.env.PORT ? 'present' : 'not present');
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3001;
+
 app.use(express.json());
 
-const genAI = new GoogleGenAI({
-  // jeśli używasz tylko API Key (Gemini Developer API / AI Studio):
-  apiKey: process.env.GEMINI_API_KEY,
-  // jeśli używasz Vertex AI, inicjalizuj inaczej (project/location/vertexai: true)
+// Global error handlers so the process doesn't exit silently
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION — process will not crash silently:', err);
 });
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
+
+// Optional: defensive wrapper if GoogleGenAI construction throws
+let genAI;
+try {
+  genAI = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+  });
+  console.log('GoogleGenAI client created');
+} catch (err) {
+  console.error('Błąd podczas inicjalizacji GoogleGenAI:', err);
+  // nie exit — zostawimy endpointy działające (zwrócą błąd przy wywołaniu), 
+  // ale proces nie powinien przestać działać od razu
+}
 
 app.post('/api/generate', async (req, res) => {
   if (!process.env.GEMINI_API_KEY) {
@@ -43,16 +64,18 @@ Instrukcje:
     
 Postaraj się, aby efekt był kreatywny i autentyczny dla wybranego stylu.`;
 
-    // ---> POPRAWNE WYWOŁANIE DLA @google/genai
+    if (!genAI) {
+      console.error('GenAI client nie został poprawnie zainicjalizowany.');
+      return res.status(500).json({ error: 'Klient GenAI nie jest dostępny na serwerze.' });
+    }
+
     const resp = await genAI.models.generateContent({
-      model: 'gemini-2.5-flash', // lub inny model dostępny w Twoim planie
-      contents: [
-        { type: 'text', text: fullPrompt }
-      ],
-      // opcjonalnie: temperature, maxOutputTokens, safetySettings itp.
+      model: 'gemini-2.5-flash',
+      contents: [{ type: 'text', text: fullPrompt }],
+      // opcjonalnie: temperature, maxOutputTokens
     });
 
-    // struktura odpowiedzi często: resp.response.candidates[0].content.parts[0].text
+    // Bezpieczne parsowanie odpowiedzi
     const contentResponse = resp?.response;
     const candidate = contentResponse?.candidates?.[0];
     const part = candidate?.content?.parts?.[0];
@@ -64,7 +87,6 @@ Postaraj się, aby efekt był kreatywny i autentyczny dla wybranego stylu.`;
     }
 
     res.json({ text });
-
   } catch (error) {
     console.error("!!! KRYTYCZNY BŁĄD PODCZAS KOMUNIKACJI Z GEMINI API !!!");
     console.error(error);
@@ -72,3 +94,16 @@ Postaraj się, aby efekt był kreatywny i autentyczny dla wybranego stylu.`;
     res.status(500).json({ error: `Błąd API: ${detailedError}` });
   }
 });
+
+// Serwowanie plików statycznych Reacta (jeśli masz)
+app.use(express.static(path.join(__dirname, 'dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Bind na 0.0.0.0 (Render preferuje, żeby nasłuchiwać na wszystkich interfejsach)
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Serwer uruchomiony poprawnie na porcie ${port} (binding 0.0.0.0)`);
+});
+
